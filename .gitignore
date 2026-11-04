@@ -1,2 +1,5 @@
 .*
-!.git*
+!.editorconfig
+!.gitignore
+!.gitattributes
+__pycache__/
