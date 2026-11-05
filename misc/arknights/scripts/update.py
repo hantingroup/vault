@@ -1,13 +1,15 @@
-"""更新《明日方舟》干员表：从 prts.wiki 导出 Cargo 表，反转义后写到 ../characters.csv。
+"""Update the Arknights operator table: export the Cargo table from prts.wiki,
+unescape it and write ../characters.csv.
 
-prts.wiki 前面挂着 Anubis 的 PoW 挑战，requests/curl 只会拿到挑战页，所以这里用
-Playwright 起一个真浏览器把挑战跑过去（通常 1~3 秒），再截下浏览器的下载。
+prts.wiki is protected by an Anubis proof-of-work challenge, so requests and
+curl only receive the challenge page. Playwright runs a real browser through it
+(usually 1-3 seconds) and captures the download.
 
-已经自己下载好原始 CSV（例如用 fetch-characters.http 导出后另存）时，用 --from
-跳过抓取，只做反转义：
+With a locally downloaded raw CSV (for example one exported through
+fetch-characters.http), use --from to skip fetching and only unescape:
 
-    python update.py                    # 抓取 + 反转义
-    python update.py --from results.csv # 只反转义
+    python update.py                    # fetch + unescape
+    python update.py --from results.csv # unescape only
 """
 
 import argparse
@@ -21,11 +23,10 @@ from pathlib import Path
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page, sync_playwright
 
-# 导出脚本落在本目录，CSV 落在上一级；按脚本位置算，跟从哪个目录运行无关
 CSV_PATH = Path(__file__).resolve().parent.parent / 'characters.csv'
-# 服务端给下载文件起的名字，只用来存临时文件
+# Download name chosen by the server; used for the temporary file
 RAW_NAME = 'results.csv'
-# Cargo 导出参数。fields 里「字段=列名」，列名按顺序原样成为表头
+# Cargo export parameters; in fields, "field=column" makes the column header
 EXPORT_PARAMS = {
     'title': 'Special:CargoExport',
     'tables': 'chara,chara_data,chara_extra_info,char_obtain',
@@ -46,33 +47,33 @@ EXPORT_PARAMS = {
 }
 EXPORT_URL = 'https://prts.wiki/index.php?' + urllib.parse.urlencode(EXPORT_PARAMS)
 HOME_URL = 'https://prts.wiki/'
-# Anubis 见到 HeadlessChrome 的 UA 直接回 Access Denied，换成普通 Chrome 才会下发挑战
+# User agent of a regular desktop Chrome; Anubis rejects a HeadlessChrome UA
 USER_AGENT = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
               '(KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36')
-# 挑战页跑在 sisyphus.prts.wiki 上，过完会跳回 prts.wiki，URL 里能看到主机名
+# Host of the Anubis challenge page (sisyphus.prts.wiki)
 CHALLENGE_HOST = 'sisyphus.'
-# 等待挑战完成的轮数和步长（秒）：正常 1~3 秒，给足 30 秒余量
+# Challenge polling: 60 rounds, 0.5 s apart
 POLL_TIMES = 60
 POLL_INTERVAL = 0.5
-# 反转义后不该再残留实体；留几个当异常提示
+# HTML entity pattern, used to detect leftovers after unescaping
 ENTITY_PATTERN = re.compile(r'&(?:#\d+|#x[0-9A-Fa-f]+|[A-Za-z][A-Za-z0-9]*);')
 
 
 def wait_for_challenge(page: Page) -> None:
-    """等 Anubis 的 PoW 自己算完并跳回站点"""
+    """Wait for the Anubis proof-of-work to finish and redirect back to the site."""
     for _ in range(POLL_TIMES):
         try:
             title = page.title()
         except PlaywrightError:
-            title = ''  # 跳转途中读不到标题，下一轮再看
+            title = ''  # title is unavailable during the redirect; retry next round
         if CHALLENGE_HOST not in page.url and 'bot' not in title.lower():
             return
         page.wait_for_timeout(POLL_INTERVAL * 1000)
-    raise RuntimeError('Anubis 挑战没能在 30 秒内通过')
+    raise RuntimeError('Anubis challenge did not complete within 30 seconds')
 
 
 def fetch_raw() -> bytes:
-    """打开浏览器过掉挑战，把导出 URL 的下载内容读成 bytes"""
+    """Open a browser, pass the challenge and return the exported CSV as bytes."""
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(locale='zh-CN', user_agent=USER_AGENT,
@@ -88,7 +89,8 @@ def fetch_raw() -> bytes:
                     try:
                         page.goto(EXPORT_URL, timeout=60_000)
                     except PlaywrightError:
-                        # 导出地址直接返回附件，浏览器把这次导航中断掉，下载照常触发
+                        # The export URL returns an attachment and aborts the
+                        # navigation; the download still starts
                         pass
                 download_info.value.save_as(target)
                 return target.read_bytes()
@@ -97,43 +99,45 @@ def fetch_raw() -> bytes:
 
 
 def unescape(text: str) -> str:
-    """反转义整份文本。
+    """Unescape the whole text.
 
-    导出会把单元格按 HTML 实体转义，直接解码的话，被引号包着的单元格里出现
-    &quot; 就变成未转义的引号，CSV 解析会错位。所以先把 &quot; 换成 CSV 的 ""，
-    再做实体解码——和原来的 unescape.sh 同一套做法，连字段的加引号风格也原样保留。
+    The export HTML-escapes cells. Decoding directly would turn &quot; inside a
+    quoted cell into an unescaped quote and shift CSV fields, so &quot; is
+    replaced by CSV's "" first and entities are decoded after, matching the old
+    unescape.sh. Each field's quoting style is preserved.
     """
     return html.unescape(text.replace('&quot;', '""'))
 
 
 def check(text: str) -> None:
-    """表头对不上通常说明抓到的是挑战页或权限页，别写进 CSV"""
+    """Validate the export; a header mismatch means the challenge or permission page came back."""
     columns = [field.split('=', 1)[-1] for field in EXPORT_PARAMS['fields'].split(',')]
     header = text.split('\n', 1)[0]
     if header != ','.join(columns):
-        sys.exit(f'表头不符，可能没抓到 CSV：{header[:80]!r}')
+        sys.exit(f'Header mismatch, no CSV received: {header[:80]!r}')
     leftovers = ENTITY_PATTERN.findall(text)
     if leftovers:
-        print(f'警告：还有 {len(leftovers)} 处实体没解掉，例如 {leftovers[0]}', file=sys.stderr)
+        print(f'Warning: {len(leftovers)} entities left unescaped, e.g. {leftovers[0]}',
+              file=sys.stderr)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='更新《明日方舟》干员表')
+    parser = argparse.ArgumentParser(description='Update the Arknights operator table')
     parser.add_argument('--from', dest='source', metavar='CSV', type=Path,
-                        help='改成读本地已下载的原始 CSV，不联网抓取')
+                        help='read a locally downloaded raw CSV instead of fetching')
     args = parser.parse_args()
 
     if args.source:
-        print(f'读取 {args.source}')
+        print(f'Reading {args.source}')
         raw = args.source.read_bytes()
     else:
-        print('抓取 prts.wiki（需要过 Anubis 挑战，几秒钟）')
+        print('Fetching prts.wiki (Anubis challenge, a few seconds)')
         raw = fetch_raw()
 
     text = unescape(raw.decode('utf-8-sig'))
     check(text)
     CSV_PATH.write_bytes(text.encode('utf-8'))
-    print(f'写入 {CSV_PATH}（{len(text.splitlines()) - 1} 行）')
+    print(f'Wrote {CSV_PATH} ({len(text.splitlines()) - 1} rows)')
 
 
 if __name__ == '__main__':
