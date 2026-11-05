@@ -1,14 +1,15 @@
-"""Update the mainland administrative division tables from dmfw.mca.gov.cn.
+"""Fetch the mainland administrative division tables from dmfw.mca.gov.cn.
 
-Fetches the hierarchy, splits it by level and marks names, writing to .output:
+Fetches the hierarchy, splits it by level and marks names, writing to
+admin/.output/dmfw.mca.gov.cn:
 
     省市区县.csv          levels 1-3, with a level column
     乡镇街道.csv          level 4, without a level column
     乡镇街道.revoked.csv  revoked township-level divisions
 
-Names are marked as 「专名:通名」 by scripts/mark.py; names that cannot be marked
-are kept as-is and listed on stderr. --no-mark disables marking. --fresh deletes
-.cache/dmfw.jsonl and refetches everything.
+Names are marked as 「专名:通名」 by the shared admin/mark.py; names that cannot be
+marked are kept as-is and listed on stderr. --no-mark disables marking. --fresh
+clears the dmfw cache and refetches everything.
 """
 
 import csv
@@ -25,9 +26,9 @@ import requests
 from pydantic import BaseModel, model_validator
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT.parent.parent))
+ROOT = Path(__file__).resolve().parent          # dmfw.mca.gov.cn
+ADMIN_DIR = ROOT.parent                         # admin
+sys.path.insert(0, str(ADMIN_DIR))
 import mark
 from level import Level
 
@@ -41,8 +42,8 @@ HEADERS = {
     'Referer': 'https://dmfw.mca.gov.cn/',
 }
 MAX_WORKERS = 6
-OUTPUT_DIR = ROOT / '.output'
-CACHE_DIR = ROOT / '.cache'
+OUTPUT_DIR = ADMIN_DIR / '.output' / 'dmfw.mca.gov.cn'
+CACHE_DIR = ADMIN_DIR / '.cache' / 'dmfw.mca.gov.cn'
 # Revoked township-level divisions, e.g. 「北关街道（撤销）」 or 「岭上乡（2021年撤销）」
 REVOKED_PATTERN = re.compile(r'（[^）]*撤[销分][^）]*）')
 # Every name seen for a code. Some codes merge a town and a farm and come back
@@ -249,7 +250,7 @@ def export_csv(nodes: Dict[str, Node], do_mark: bool = True) -> None:
     With do_mark (the default) names are marked by mark.py; names that cannot be
     marked are kept as-is and listed on stderr.
     """
-    OUTPUT_DIR.mkdir(exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     warnings = mark.Warnings()
 
@@ -299,8 +300,9 @@ def report_aliases() -> None:
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
-        description='Update the mainland administrative division tables from dmfw.mca.gov.cn.',
-        epilog='Writes 省市区县.csv, 乡镇街道.csv and 乡镇街道.revoked.csv to .output/.')
+        description='Fetch the mainland administrative division tables from dmfw.mca.gov.cn.',
+        epilog='Writes 省市区县.csv, 乡镇街道.csv and 乡镇街道.revoked.csv '
+               'to admin/.output/dmfw.mca.gov.cn/.')
     parser.add_argument('--fresh', action='store_true',
                         help='delete the response cache and refetch every node')
     parser.add_argument('--no-mark', action='store_true',
@@ -312,7 +314,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"Removed cache: {CACHE_PATH}", file=sys.stderr)
     do_mark = not args.no_mark
 
-    OUTPUT_DIR.mkdir(exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     load_cache()
 

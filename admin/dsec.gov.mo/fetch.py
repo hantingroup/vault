@@ -1,19 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Generate .output/澳门.csv from DSEC 《統計年鑑》 table 1.1 「統計分區」.
+"""Generate admin/.output/dsec.gov.mo/澳门.csv from DSEC 《統計年鑑》 table 1.1 「統計分區」.
 
-The numbers and names of the 26 statistical districts are parsed from the
-yearbook PDF (see yearbook.py) instead of being hard-coded, so additions and
-removals in a new edition surface as an error against the grouping in
-refs/macau.json rather than as silently missing rows.
-
-Macau is not fetched from the citypopulation.de page: that table has only 24
-districts (missing 路氹填海區 and 新城C區) and lists 新城A區 as a separate Zone.
-The 26 districts here use DSEC's numbers and official names, ordered by the
-official 1-26.
+The numbers and names of the 26 statistical districts, ordered by DSEC's
+official 1-26, are parsed from the yearbook PDF (see yearbook.py) instead of
+being hard-coded, so additions and removals in a new edition surface as an
+error against the grouping in macau.json rather than as silently missing rows.
 
 Names are split into 「专名:通名」, with the generic part chosen by type using the
-rules in gat_common.py in this directory; Macau types do not follow the mainland
+rules in the shared mark.py; Macau types do not follow the mainland
 classification and stay in traditional Chinese.
 
 Code layout:
@@ -29,11 +24,11 @@ not administrative units. They default to type=區域 and get a marked name
 --mo-regions= leaves type and name unmarked. --no-mo-regions omits these four
 rows, attaching the 10 county-level units directly to 82 as 820101-820110.
 
-Usage (from the source directory):
-    python scripts/update.py                    # four geographic rows, type=區域
-    python scripts/update.py --mo-regions=地區   # type for those rows
-    python scripts/update.py --no-mo-regions     # omit the four rows
-    python scripts/update.py --refresh           # redownload the yearbook PDF
+Usage (from admin/dsec.gov.mo):
+    python fetch.py                    # four geographic rows, type=區域
+    python fetch.py --mo-regions=地區   # type for those rows
+    python fetch.py --no-mo-regions     # omit the four rows
+    python fetch.py --refresh           # redownload the yearbook PDF
 """
 
 import argparse
@@ -43,16 +38,17 @@ import sys
 from pathlib import Path
 from typing import List, Optional
 
-# The shared administrative levels live at the admin/ level.
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT.parent))
+# The shared modules live at the admin/ root.
+ROOT = Path(__file__).resolve().parent          # dsec.gov.mo
+ADMIN_DIR = ROOT.parent                         # admin
+sys.path.insert(0, str(ADMIN_DIR))
 from level import Level
+from mark import split_name, suffix_of
 
 import yearbook
-from gat_common import split_name, suffix_of
 
-DATA = json.loads((ROOT / 'refs' / 'macau.json').read_text(encoding='utf-8'))
-OUTPUT_DIR = ROOT / '.output'
+DATA = json.loads((ROOT / 'macau.json').read_text(encoding='utf-8'))
+OUTPUT_DIR = ADMIN_DIR / '.output' / 'dsec.gov.mo'
 OUT = OUTPUT_DIR / '澳门.csv'
 
 # The first row is the SAR itself, which counts as province level here. parent is
@@ -76,7 +72,7 @@ def mo_region_rows(type_):
 
 # Which parish or new town each statistical district belongs to. Table 1.1 gives
 # only the 26 district numbers and names, not the parish, so the mapping is
-# maintained in refs/macau.json; the keys are the district names as printed in
+# maintained in macau.json; the keys are the district names as printed in
 # the yearbook.
 # 花地瑪, 聖安多尼, 望德, 大堂 and 風順 are the parishes of 澳門半島; 氹仔 is
 # 嘉模堂區 and 路環 is 聖方濟各堂區. The three new reclamation districts 24-26
@@ -142,7 +138,7 @@ def mo_rows(districts, no_mo_regions=False):
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description='Generate the Macau statistical district table from the DSEC yearbook.',
-        epilog='Writes .output/澳门.csv.')
+        epilog='Writes 澳门.csv to admin/.output/dsec.gov.mo/.')
     parser.add_argument('--mo-regions', nargs='?', const='', default='區域', metavar='TYPE',
                         help='add the 澳門半島/氹仔/路環/路氹城 rows and hang parishes and '
                              'new towns under 8201-8204; TYPE is their type (default 區域); '
@@ -168,7 +164,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         seen[code] = name
 
     rows.sort(key=lambda r: r[2])
-    OUTPUT_DIR.mkdir(exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     with open(OUT, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(['level', 'parent', 'code', 'type', 'name'])

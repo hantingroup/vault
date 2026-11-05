@@ -9,8 +9,9 @@ Macau. Both kinds are recognized by their headers rather than by page name.
 
 This module only fetches pages and splits rows into dicts; alignment to the
 repository format (Taiwan/Hong Kong code values and ordering) is in
-../../citypopulation.de/scripts/hmt/build.py. Pages are cached in .cache/; a
-page string like 71/710100 becomes a subdirectory.
+../citypopulation.de/build.py. Pages are cached in
+admin/.cache/huiruisoft.com/; a page string like 71/710100 becomes a
+subdirectory.
 """
 
 import re
@@ -21,8 +22,9 @@ from html import unescape
 from pathlib import Path
 from typing import Dict, List
 
-ROOT = Path(__file__).resolve().parent.parent
-CACHE_DIR = ROOT / '.cache'
+ROOT = Path(__file__).resolve().parent          # huiruisoft.com
+ADMIN_DIR = ROOT.parent                         # admin
+CACHE_DIR = ADMIN_DIR / '.cache' / 'huiruisoft.com'
 BASE = 'https://www.huiruisoft.com/district/'
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 

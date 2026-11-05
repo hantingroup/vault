@@ -14,7 +14,8 @@ columns each form a vertical line at their own x, and a row shares one y. When a
 long name wraps, the continuation has no number and joins the nearest number
 row by y. Returns [(number, district name), ...] with numbers 1-26 as printed.
 
-PDFs are cached in .cache/ (--refresh redownloads the release list and the PDF).
+PDFs are cached in admin/.cache/dsec.gov.mo/ (--refresh redownloads the release
+list and the PDF).
 """
 
 import argparse
@@ -33,8 +34,9 @@ from pypdf import PdfReader
 # Rotated map labels make pypdf warn; they are not part of the table
 logging.getLogger('pypdf').setLevel(logging.ERROR)
 
-ROOT = Path(__file__).resolve().parent.parent
-CACHE_DIR = ROOT / '.cache'
+ROOT = Path(__file__).resolve().parent          # dsec.gov.mo
+ADMIN_DIR = ROOT.parent                         # admin
+CACHE_DIR = ADMIN_DIR / '.cache' / 'dsec.gov.mo'
 CACHE_JSON = CACHE_DIR / 'releases_General.json'
 SITE = 'https://www.dsec.gov.mo'
 RELEASES_URL = f'{SITE}/StatisticsJSON/AllReleases_zh-MO_General.json'
@@ -119,7 +121,7 @@ def parse(path: Path) -> List[Tuple[int, str]]:
 
 
 def districts(refresh: bool = False, path: Optional[Path] = None) -> List[Tuple[int, str]]:
-    """Fetch (or use the local --pdf) and parse; used by update.py."""
+    """Fetch (or use the local --pdf) and parse; used by fetch.py."""
     return parse(path or fetch(refresh))
 
 

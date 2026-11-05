@@ -1,8 +1,8 @@
 """Fetch citypopulation.de administrative list pages and output them as shown.
 
     cd admin/citypopulation.de
-    python scripts/fetch.py https://www.citypopulation.de/en/taiwan/admin/ -o taiwan.csv
-    python scripts/fetch.py https://www.citypopulation.de/en/china/admin/ | head
+    python fetch.py https://www.citypopulation.de/en/taiwan/admin/ -o taiwan.csv
+    python fetch.py https://www.citypopulation.de/en/china/admin/ | head
 
 Columns: parent,level,id,status,name,alt,native,wiki,wikidata,area,density,
 pop_<C|E>_<date>…,url
@@ -34,7 +34,8 @@ align the data handle that.
 
 The page is a flat table: a row with class="rname" starts a level, and the rows
 up to the next rname belong to it, so one page covers two levels. Deeper levels
-are on their own subpages. Pages are cached in ../.cache/ (--refresh refetches).
+are on their own subpages. Pages are cached in admin/.cache/citypopulation.de/
+(--refresh refetches).
 """
 
 import argparse
@@ -48,8 +49,9 @@ from html import unescape
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-ROOT = Path(__file__).resolve().parent
-CACHE_DIR = ROOT.parent / '.cache'
+ROOT = Path(__file__).resolve().parent          # citypopulation.de
+ADMIN_DIR = ROOT.parent                         # admin
+CACHE_DIR = ADMIN_DIR / '.cache' / 'citypopulation.de'
 BASE_URL = 'https://www.citypopulation.de/'
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 

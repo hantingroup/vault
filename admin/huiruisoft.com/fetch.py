@@ -1,14 +1,15 @@
 """Fetch huiruisoft district pages and write CSV using the page headers.
 
-    python scripts/update.py 710000                 # Taiwan province, to stdout
-    python scripts/update.py 810000 -o hongkong.csv # Hong Kong
-    python scripts/update.py 71/710100              # children of Taipei
-    python scripts/update.py 110000                 # children of Beijing
-    python scripts/update.py 11/110101              # children of Dongcheng
-    python scripts/update.py 2022 -o 2022.csv       # county level and above
-    python scripts/update.py 710000 --refresh       # refetch instead of the cache
+    python fetch.py 710000                 # Taiwan province, to stdout
+    python fetch.py 810000 -o hongkong.csv # Hong Kong
+    python fetch.py 71/710100              # children of Taipei
+    python fetch.py 110000                 # children of Beijing
+    python fetch.py 11/110101              # children of Dongcheng
+    python fetch.py 2022 -o 2022.csv       # county level and above
+    python fetch.py 710000 --refresh       # refetch instead of the cache
 
-page is the path on the site; pages are cached in .cache/ (see huiruisoft.py).
+page is the path on the site; pages are cached in admin/.cache/huiruisoft.com/
+(see huiruisoft.py).
 """
 
 import argparse

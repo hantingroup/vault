@@ -14,8 +14,16 @@ The generic part comes from type rather than from the name suffix; only types
 with several possible forms are disambiguated by suffix (市辖区: 区/新区/矿区,
 民族乡: 乡/民族乡, 农场: 农场/场).
 
-Usage (from the project directory):
-    python scripts/mark.py .output/省市区县.csv > marked.csv
+The rules above are for mainland names (dmfw.mca.gov.cn). Hong Kong, Macau and
+Taiwan do not follow the mainland classification (Taiwan has no prefecture
+level, a province-administered city is a 市, and below a county comes a 縣轄市),
+so their types and names stay in traditional Chinese; suffix_of, split_name and
+proper_of below handle them for citypopulation.de and dsec.gov.mo.
+
+All source directories under admin/ share this module.
+
+Usage (from the repository root):
+    python admin/mark.py admin/.output/dmfw.mca.gov.cn/省市区县.csv > marked.csv
 
 Files passed together must have the same columns: the first file's header is
 written once for all rows.
@@ -33,8 +41,11 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-DATA_PATH = Path(__file__).resolve().parent.parent / 'refs' / 'names.json'
+# The names are mainland-specific, so the data stays with the dmfw source
+DATA_PATH = (Path(__file__).resolve().parent
+             / 'dmfw.mca.gov.cn' / 'names.json')
 DATA = json.loads(DATA_PATH.read_text(encoding='utf-8'))
+OUTPUT_DIR = Path(__file__).resolve().parent / '.output' / 'dmfw.mca.gov.cn'
 
 # The 55 ethnic names other than 汉, without 族; matching tries "X族" first,
 # then the bare name.
@@ -172,15 +183,63 @@ def mark(name: str, typ: str, code: str = '') -> Optional[str]:
     return None
 
 
+# --- Hong Kong, Macau and Taiwan -----------------------------------------
+# These regions do not follow the mainland classification, so page names and
+# types stay in traditional Chinese. Used by citypopulation.de/build.py and
+# dsec.gov.mo/fetch.py.
+
+# Types whose generic part is not the type name itself; None means the name has
+# no generic part (Hong Kong's 選區 are like 寶翠, 衛城). Every other type uses
+# the type name as the generic.
+SUFFIX_EXCEPTIONS = {
+    '直轄市': '市', '市轄區': '區', '縣轄市': '市', '區議會': '區', '選區': None,
+    '統計區': '區',
+}
+
+# Per-name generic parts where the printed name itself differs from the type's
+# generic: 大堂區 is the one parish whose name ends in 區 instead of 堂區.
+NAME_SUFFIX_EXCEPTIONS = {('堂區', '大堂'): '區'}
+
+
+def suffix_of(type_):
+    """Generic part for a type: the type itself unless SUFFIX_EXCEPTIONS says otherwise."""
+    return SUFFIX_EXCEPTIONS.get(type_, type_)
+
+
+def split_name(name, type_):
+    """Split a page name into the repository's 「专名:通名」.
+
+    Two names lack or shorten the generic part, so it is restored first:
+        堂區    the page writes 堂區 as 堂 (花地瑪堂, 聖安多尼堂…); the trailing
+                堂 is dropped before 堂區 is appended. 大堂 keeps its 堂, since
+                dropping it would leave only 大; its printed name 大堂區 takes
+                區 as the generic (see NAME_SUFFIX_EXCEPTIONS).
+        區議會  the 區 is missing from 深水埗 (the other 17 have it) and is appended.
+    """
+    suffix = NAME_SUFFIX_EXCEPTIONS.get((type_, name), suffix_of(type_))
+    if suffix is None:
+        return name
+    if type_ == '堂區' and name.endswith('堂') and len(name) >= 3:
+        name = name[:-1]
+    if name.endswith(suffix) and len(name) > len(suffix):
+        return f'{name[:-len(suffix)]}:{suffix}'
+    return f'{name}:{suffix}'
+
+
+def proper_of(name):
+    """Return the proper-name part of 「专名:通名」."""
+    return name.split(':')[0]
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description='Mark administrative division names as 「专名:通名」 and write CSV to stdout.',
         epilog='Names already containing | or : are re-marked from the plain name; '
                'results that differ are reported on stderr.')
     parser.add_argument('paths', nargs='*', metavar='CSV',
-                        default=['.output/省市区县.csv'],
+                        default=[str(OUTPUT_DIR / '省市区县.csv')],
                         help='CSV file(s) with name/type/code columns '
-                             '(default: .output/省市区县.csv)')
+                             '(default: admin/.output/dmfw.mca.gov.cn/省市区县.csv)')
     args = parser.parse_args(argv)
     paths = args.paths
     out = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', newline='\n')

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Convert the citypopulation.de Taiwan and Hong Kong pages into repository format
-and write .output/台湾.csv and .output/香港.csv.
+and write the Taiwan and Hong Kong tables under admin/.output/citypopulation.de/.
 
-Page fetching and parsing are done by ../fetch.py (a generic fetcher returning
+Page fetching and parsing are done by fetch.py (a generic fetcher returning
 the page's raw fields); this script does the three alignment steps:
     - status label -> type (Special Municipality -> 直轄市, District Council ->
       區議會…). Types do not follow the mainland classification (Taiwan has no
@@ -12,9 +12,9 @@ the page's raw fields); this script does the three alignment steps:
     - names are split into 「专名:通名」, with the generic part chosen by type;
       names without one get it appended
     - code values and same-level ordering come from huiruisoft's district
-      tables; the ordering table is kept in refs/order.json and rebuilt with
+      tables; the ordering table is kept in order.json and rebuilt with
       --refresh-order from https://www.huiruisoft.com/district/
-      (page cache: ../../../huiruisoft.com/.cache/)
+      (page cache: admin/.cache/huiruisoft.com/)
 
 Codes given in the table are copied as-is: Taiwan's 7101-7109 for municipalities
 and province-administered cities, 7122/7124/… for counties (gaps are kept, no 00
@@ -33,10 +33,10 @@ by the repository rules:
 The page supplies only units and names; units that do not match or are unknown
 are placed last at their level in page order and a warning is printed to stderr.
 The pages use traditional characters while huiruisoft uses simplified ones, so
-the two are matched through the name pairs in refs/order.json: each entry keeps
+the two are matched through the name pairs in order.json: each entry keeps
 the huiruisoft name and the page name it was mapped to. A refresh reuses those
 pairs instead of converting characters; a new unit with no pair is reported and
-needs one added to refs/order.json.
+needs one added to order.json.
 
 Hong Kong's 18 districts are grouped under 8101 香港島 / 8102 九龍 / 8103 新界 by
 HK_DISTRICTS and numbered from 01 within each region in huiruisoft order. These
@@ -45,15 +45,14 @@ marked name (2,81,8102,區域,九龍:區域). --hk-regions=TYPE changes the type
 empty --hk-regions= leaves type and name unmarked, and --no-hk-regions omits the
 three rows, attaching the 18 districts to 81 as 810101-810118.
 
-Macau is not handled here: DSEC's statistical districts differ from these pages,
-see ../../../dsec.gov.mo/scripts/update.py.
+Macau is handled by ../dsec.gov.mo/fetch.py.
 
-Usage (from the source directory):
-    python scripts/hmt/build.py               # keep page names and types
-    python scripts/hmt/build.py --refresh     # redownload the pages
-    python scripts/hmt/build.py --refresh-order   # rebuild .cache/order.json
-    python scripts/hmt/build.py --hk-regions=地區  # type for the three rows
-    python scripts/hmt/build.py --no-hk-regions    # omit the three rows
+Usage (from admin/citypopulation.de):
+    python build.py               # keep page names and types
+    python build.py --refresh     # redownload the pages
+    python build.py --refresh-order   # rebuild order.json
+    python build.py --hk-regions=地區  # type for the three rows
+    python build.py --no-hk-regions    # omit the three rows
 """
 
 import argparse
@@ -63,24 +62,20 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-HERE = Path(__file__).resolve().parent      # scripts/hmt
-SCRIPTS_DIR = HERE.parent                   # scripts
-ROOT = SCRIPTS_DIR.parent                   # citypopulation.de
-ADMIN_DIR = ROOT.parent
+ROOT = Path(__file__).resolve().parent      # citypopulation.de
+ADMIN_DIR = ROOT.parent                     # admin
 
-# fetch.py sits in scripts/; huiruisoft and the shared level enum live under
-# admin/.
-for path in (HERE, SCRIPTS_DIR, ADMIN_DIR / 'huiruisoft.com' / 'scripts', ADMIN_DIR):
+# huiruisoft and the shared modules live elsewhere under admin/
+for path in (ROOT, ADMIN_DIR / 'huiruisoft.com', ADMIN_DIR):
     sys.path.insert(0, str(path))
 
 from fetch import fetch, parse
-from gat_common import proper_of, split_name, suffix_of
 from huiruisoft import fetch as fetch_huiruisoft, parse as parse_huiruisoft
 from level import Level
+from mark import proper_of, split_name, suffix_of
 
-DATA = json.loads((ROOT / 'refs' / 'taiwan_hongkong.json').read_text(encoding='utf-8'))
-CACHE_DIR = ROOT / '.cache'
-OUTPUT_DIR = ROOT / '.output'
+DATA = json.loads((ROOT / 'taiwan_hongkong.json').read_text(encoding='utf-8'))
+OUTPUT_DIR = ADMIN_DIR / '.output' / 'citypopulation.de'
 OUT_TAIWAN = OUTPUT_DIR / '台湾.csv'
 OUT_HONGKONG = OUTPUT_DIR / '香港.csv'
 
@@ -190,8 +185,8 @@ SERIES = {'縣轄市': 100, '鎮': 100, '鄉': 200, '選區': 1}
 
 # Same-level ordering comes from huiruisoft's district tables
 # (https://www.huiruisoft.com/district/); the ordering table lives in
-# refs/order.json and is rebuilt with --refresh-order rather than hard-coded
-# (huiruisoft page cache: ../../../huiruisoft.com/.cache/).
+# order.json and is rebuilt with --refresh-order rather than hard-coded
+# (huiruisoft page cache: admin/.cache/huiruisoft.com/).
 # Shape: {"parent code/level": [{"code": ..., "name": ..., "page": ..., "huiruisoft": ...}, ...]}:
 #   name       traditional proper name as on the page, matching unit['proper']
 #   page       full page name (distinguishes 新竹市 from 新竹縣, which share a proper name)
@@ -199,7 +194,7 @@ SERIES = {'縣轄市': 100, '鎮': 100, '鄉': 200, '選區': 1}
 #   huiruisoft full name as shown on the site; a refresh matches entries by it
 # Units missing from the table (units the site does not have yet) go last, in
 # page order.
-ORDER_PATH = ROOT / 'refs' / 'order.json'
+ORDER_PATH = ROOT / 'order.json'
 
 ORDER = None
 
@@ -261,7 +256,7 @@ def match_rows(rows, units, old):
 
     rows   [(huiruisoft code, huiruisoft full name)], site order
     units  page units in this group
-    old    entries from refs/order.json; each holds a huiruisoft name and the
+    old    entries from order.json; each holds a huiruisoft name and the
            page name it was matched to
     """
     # Match by page name, not proper name: 新竹市 and 新竹縣 share 新竹
@@ -278,7 +273,7 @@ def match_rows(rows, units, old):
 
 
 def fetch_order(refresh=False, city_refresh=False):
-    """Rebuild the ordering table from huiruisoft and write refs/order.json.
+    """Rebuild the ordering table from huiruisoft and write order.json.
 
     refresh refetches the huiruisoft pages; city_refresh refetches the
     citypopulation pages. Known huiruisoft/page name pairs from the existing
@@ -465,7 +460,7 @@ def write_table(rows, path):
         seen[code] = name
 
     rows.sort(key=lambda r: r[2])
-    path.parent.mkdir(exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f, lineterminator='\n')
         writer.writerow(['level', 'parent', 'code', 'type', 'name'])
@@ -481,11 +476,11 @@ def write_table(rows, path):
 def main(argv: Optional[list] = None) -> None:
     parser = argparse.ArgumentParser(
         description='Generate the Taiwan and Hong Kong tables from citypopulation.de.',
-        epilog='Writes .output/台湾.csv and .output/香港.csv.')
+        epilog='Writes 台湾.csv and 香港.csv to admin/.output/citypopulation.de/.')
     parser.add_argument('--refresh', action='store_true',
                         help='redownload the citypopulation pages instead of using the cache')
     parser.add_argument('--refresh-order', action='store_true',
-                        help='redownload the huiruisoft district tables and rebuild .cache/order.json')
+                        help='redownload the huiruisoft district tables and rebuild order.json')
     parser.add_argument('--hk-regions', nargs='?', const='', default='區域', metavar='TYPE',
                         help='add the 香港島/九龍/新界 rows; TYPE is their type (default 區域); '
                              'an empty TYPE leaves type and names unmarked')

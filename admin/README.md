@@ -9,20 +9,24 @@
 | `dsec.gov.mo/` | [澳门统计暨普查局](https://www.dsec.gov.mo/)《統計年鑑》 | `澳门.csv` |
 | `huiruisoft.com/` | [huiruisoft](https://www.huiruisoft.com/district/) | 不单独产出仓库表；台湾、香港的码值和同级顺序取自这里 |
 
-每个来源目录的布局一致：
-
-    <source>/
-      scripts/   代码
-      refs/      来源相关的参考数据（JSON 映射和名单）
-      *.csv      产出的仓库表
+    admin/
+      level.py       行政级别 `Level`
+      mark.py        「专名:通名」标记与台港澳通名规则
+      行政管理区.csv
+      <来源域名>/
+        *.py         该来源的脚本
+        *.json       来源相关的参考数据（JSON 映射和名单）
+        *.csv        产出的仓库表
+      .output/<来源域名>/  生成的仓库表（核对后覆盖回 <来源域名>/）
+      .cache/<来源域名>/   抓取缓存
 
 - `行政管理区.csv`：开发区、管理区这类非标准建制，手工维护，多一列 `raw` 记原始 code。
 - `level.py`：行政级别 `Level`（0 国、1 省、2 地、3 县、4 乡），各来源脚本共用。
-- `dmfw.mca.gov.cn/scripts/`：内地数据脚本。`update.py` 抓取并生成三张表，`mark.py`
-  把名称标成「专名:通名」，`merge.py`/`split.py` 合并和拆分表。
-- `citypopulation.de/scripts/hmt/gat_common.py`、`dsec.gov.mo/scripts/gat_common.py`：
-  台港澳的 type 与通名规则，两份内容相同，各自随目录自包含。
-- 各目录的 `refs/*.json`：如香港分区与区域、台湾和香港的码值顺序、澳门分区归组、
+- `mark.py`：把内地名称标成「专名:通名」，台港澳按 type 定通名；各来源脚本共用。
+  内地名称用的数据 `dmfw.mca.gov.cn/names.json` 仍留在来源目录里。
+- `dmfw.mca.gov.cn/`：内地数据脚本。`fetch.py` 抓取并生成三张表，
+  `merge.py`/`split.py` 合并和拆分表。
+- 各来源目录里的 `*.json`：如香港分区与区域、台湾和香港的码值顺序、澳门分区归组、
   民族名。代码里只放规则和结构常量。
 
 内地数据不包含：
@@ -37,26 +41,27 @@
 
 每个来源一个目录，在目录里跑脚本（路径按脚本位置算，从哪个目录运行都行）：
 
-    cd admin/dmfw.mca.gov.cn && python scripts/update.py
-    cd admin/citypopulation.de && python scripts/hmt/build.py
-    cd admin/dsec.gov.mo && python scripts/update.py
+    cd admin/dmfw.mca.gov.cn && python fetch.py
+    cd admin/citypopulation.de && python build.py
+    cd admin/dsec.gov.mo && python fetch.py
 
-生成仓库表的脚本写到各自目录的 `.output/`，跟已校订的顶层 CSV 分开；核对后再覆盖过去。
+生成仓库表的脚本写到 `admin/.output/<来源域名>/`，跟已校订的 `<来源域名>/*.csv`
+分开；核对后再覆盖过去。抓取缓存放在 `admin/.cache/<来源域名>/`。
 
-- `dmfw.mca.gov.cn/scripts/update.py`：抓内地省市区县和乡镇街道；`--no-mark`
+- `dmfw.mca.gov.cn/fetch.py`：抓内地省市区县和乡镇街道；`--no-mark`
   不标名称，`--fresh` 清缓存重抓。
-- `citypopulation.de/scripts/fetch.py`：通用抓取器，给一个 citypopulation.de 的行政区列表页，
+- `citypopulation.de/fetch.py`：通用抓取器，给一个 citypopulation.de 的行政区列表页，
   输出页面原始字段（`parent,level,id,status,name,alt,native,wiki,wikidata,area,density`、
   按页头生成的各期人口列 `pop_<C|E>_<date>`、`url`）。全国、国外的页面都能抓，不套仓库格式。
-- `citypopulation.de/scripts/hmt/build.py`：把台湾、香港页面转成仓库格式；码值和
-  同级顺序取自 `../../huiruisoft.com/scripts/`，`--refresh-order` 重建
-  `.cache/order.json`。澳门页面的口径跟 DSEC 不同，不在这个脚本里。
-- `huiruisoft.com/scripts/update.py`：通用抓取器，站点覆盖全国（省、市、县、乡镇逐级）和台港澳：
+- `citypopulation.de/build.py`：把台湾、香港页面转成仓库格式；码值和
+  同级顺序取自 `../huiruisoft.com/`，`--refresh-order` 重建
+  `order.json`。澳门页面的口径跟 DSEC 不同，不在这个脚本里。
+- `huiruisoft.com/fetch.py`：通用抓取器，站点覆盖全国（省、市、县、乡镇逐级）和台港澳：
   `110000` 北京市、`11/110101` 东城区、`2022` 全国县及以上汇总、`710000` 台湾省。
   按页面表头输出 CSV（区划代码、中文名称、电话区号…），不套仓库格式。
-- `dsec.gov.mo/scripts/update.py`：下载 DSEC《統計年鑑》PDF，解析表 1.1「統計分區」
-  生成澳门表。26 个分区的编号和名字取自 PDF（`scripts/yearbook.py`），「分区归哪个
-  堂區/新城區」写在 `refs/macau.json` 里；年鉴升版后 `--refresh` 重新下载，名字对不上
+- `dsec.gov.mo/fetch.py`：下载 DSEC《統計年鑑》PDF，解析表 1.1「統計分區」
+  生成澳门表。26 个分区的编号和名字取自 PDF（`yearbook.py`），「分区归哪个
+  堂區/新城區」写在 `macau.json` 里；年鉴升版后 `--refresh` 重新下载，名字对不上
   会报错。
 
 如有需要可以去看看 [https://github.com/montmorill/data_location](https://github.com/montmorill/data_location)，该仓库包含了更多数据。
