@@ -20,7 +20,7 @@
 - `level.py`：行政级别 `Level`（0 国、1 省、2 地、3 县、4 乡），各来源脚本共用。
 - `dmfw.mca.gov.cn/scripts/`：内地数据脚本。`update.py` 抓取并生成三张表，`mark.py`
   把名称标成「专名:通名」，`merge.py`/`split.py` 合并和拆分表。
-- `citypopulation.de/scripts/hkmotw/gat_common.py`、`dsec.gov.mo/scripts/gat_common.py`：
+- `citypopulation.de/scripts/hmt/gat_common.py`、`dsec.gov.mo/scripts/gat_common.py`：
   台港澳的 type 与通名规则，两份内容相同，各自随目录自包含。
 - 各目录的 `refs/*.json`：如香港分区与区域、台湾和香港的码值顺序、澳门分区归组、
   民族名。代码里只放规则和结构常量。
@@ -38,7 +38,7 @@
 每个来源一个目录，在目录里跑脚本（路径按脚本位置算，从哪个目录运行都行）：
 
     cd admin/dmfw.mca.gov.cn && python scripts/update.py
-    cd admin/citypopulation.de && python scripts/hkmotw/build.py
+    cd admin/citypopulation.de && python scripts/hmt/build.py
     cd admin/dsec.gov.mo && python scripts/update.py
 
 生成仓库表的脚本写到各自目录的 `.output/`，跟已校订的顶层 CSV 分开；核对后再覆盖过去。
@@ -48,7 +48,7 @@
 - `citypopulation.de/scripts/fetch.py`：通用抓取器，给一个 citypopulation.de 的行政区列表页，
   输出页面原始字段（`parent,level,id,status,name,alt,native,wiki,wikidata,area,density`、
   按页头生成的各期人口列 `pop_<C|E>_<date>`、`url`）。全国、国外的页面都能抓，不套仓库格式。
-- `citypopulation.de/scripts/hkmotw/build.py`：把台湾、香港页面转成仓库格式；码值和
+- `citypopulation.de/scripts/hmt/build.py`：把台湾、香港页面转成仓库格式；码值和
   同级顺序取自 `../../huiruisoft.com/scripts/`，`--refresh-order` 重建
   `.cache/order.json`。澳门页面的口径跟 DSEC 不同，不在这个脚本里。
 - `huiruisoft.com/scripts/update.py`：通用抓取器，站点覆盖全国（省、市、县、乡镇逐级）和台港澳：

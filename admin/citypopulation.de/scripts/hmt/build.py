@@ -49,11 +49,11 @@ Macau is not handled here: DSEC's statistical districts differ from these pages,
 see ../../../dsec.gov.mo/scripts/update.py.
 
 Usage (from the source directory):
-    python scripts/hkmotw/build.py               # keep page names and types
-    python scripts/hkmotw/build.py --refresh     # redownload the pages
-    python scripts/hkmotw/build.py --refresh-order   # rebuild .cache/order.json
-    python scripts/hkmotw/build.py --hk-regions=地區  # type for the three rows
-    python scripts/hkmotw/build.py --no-hk-regions    # omit the three rows
+    python scripts/hmt/build.py               # keep page names and types
+    python scripts/hmt/build.py --refresh     # redownload the pages
+    python scripts/hmt/build.py --refresh-order   # rebuild .cache/order.json
+    python scripts/hmt/build.py --hk-regions=地區  # type for the three rows
+    python scripts/hmt/build.py --no-hk-regions    # omit the three rows
 """
 
 import argparse
@@ -63,7 +63,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-HERE = Path(__file__).resolve().parent      # scripts/hkmotw
+HERE = Path(__file__).resolve().parent      # scripts/hmt
 SCRIPTS_DIR = HERE.parent                   # scripts
 ROOT = SCRIPTS_DIR.parent                   # citypopulation.de
 ADMIN_DIR = ROOT.parent

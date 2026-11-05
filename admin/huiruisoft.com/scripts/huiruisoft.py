@@ -9,7 +9,7 @@ Macau. Both kinds are recognized by their headers rather than by page name.
 
 This module only fetches pages and splits rows into dicts; alignment to the
 repository format (Taiwan/Hong Kong code values and ordering) is in
-../../citypopulation.de/scripts/hkmotw/build.py. Pages are cached in .cache/; a
+../../citypopulation.de/scripts/hmt/build.py. Pages are cached in .cache/; a
 page string like 71/710100 becomes a subdirectory.
 """
 
