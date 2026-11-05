@@ -11,13 +11,13 @@
 
 一拆一合能得回原样。不带 @ 的目标文件收下其余所有行，并保留 level 列。
 
-行由 level 区分；同一层级要拆成两个文件时（例如港澳台与内地同在 1–3 级），
+行由 level 区分；同一层级要拆成两个文件时（例如台港澳与内地同在 1–3 级），
 在 level 后面接冒号和 code 前缀：
 
-    python split.py .merged.csv 省市区县.csv 港澳台.csv@1,2,3:7,8 乡镇街道.csv@4
+    python split.py .merged.csv 省市区县.csv 台湾.csv@1,2,3:7 香港.csv@1,2,3:81 澳门.csv@1,2,3:82 乡镇街道.csv@4
 
 带了 code 前缀的目标保留 level 列——这时区分行的依据是 code，不是 level，
-文件本身还是「有 level 的那一类」（港澳台.csv 就带 level 列）。
+文件本身还是「有 level 的那一类」（台湾/香港/澳门.csv 就带 level 列）。
 """
 
 import csv

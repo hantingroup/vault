@@ -14,8 +14,9 @@
 （市辖区 区/新区/矿区、民族乡 乡/民族乡、农场 农场/场）。
 
 用法：
-    python mark.py .output/省市区县.csv > marked.csv
-    python mark.py 省市区县.csv 乡镇街道.csv > marked.csv    # 列相同的文件才可以一起给
+    python mark.py ../dmfw.mca.gov.cn/.output/省市区县.csv > marked.csv
+    # 列相同的文件才可以一起给
+    python mark.py ../dmfw.mca.gov.cn/省市区县.csv ../dmfw.mca.gov.cn/乡镇街道.csv > marked.csv
 
 已经标过的名称（带 `|` 或 `:`）会先还原成原名再重标一遍；重标结果与原名不同时
 报 warning，输出采用重标的写法。没标过的照常标注，不算 warning。

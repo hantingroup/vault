@@ -4,8 +4,8 @@
     乡镇街道.csv          4 级，不带 level
     乡镇街道.revoked.csv  已撤销的乡级建制
 
-名称默认用同目录的 mark.py 标成「专名:通名」，标不出来的保留原名并列到 stderr；
---no-mark 关闭标注。--fresh 清掉 .cache/dmfw/dmfw.jsonl 重新抓。
+名称默认用 admin/scripts/ 的 mark.py 标成「专名:通名」，标不出来的保留原名并列到
+stderr；--no-mark 关闭标注。--fresh 清掉 .cache/dmfw/dmfw.jsonl 重新抓。
 """
 
 import csv
@@ -22,7 +22,11 @@ import requests
 from pydantic import BaseModel, model_validator
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-# 同目录的标注脚本：抓下来的名称默认先标成「专名:通名」再落盘
+# 按脚本位置算路径，跟从哪个目录运行无关
+ROOT = Path(__file__).resolve().parent
+
+# 共用的标注脚本在 admin/scripts/：抓下来的名称默认先标成「专名:通名」再落盘
+sys.path.insert(0, str(ROOT.parent / 'scripts'))
 import mark
 
 # 直辖市代码
@@ -38,9 +42,9 @@ HEADERS = {
 # 并发再高接口会零星断连，2800 多个区县重跑一遍不划算
 MAX_WORKERS = 6
 # 抓取结果写到独立目录，不覆盖已人工校订过的 CSV
-OUTPUT_DIR = Path('.output')
+OUTPUT_DIR = ROOT / '.output'
 # 响应缓存是可以重抓的中间产物，单独放，不混进 .output
-CACHE_DIR = Path('.cache')
+CACHE_DIR = ROOT / '.cache' / 'dmfw'
 # 已撤销的乡级建制，名称形如「北关街道（撤销）」「岭上乡（2021年撤销）」
 REVOKED_PATTERN = re.compile(r'（[^）]*撤[销分][^）]*）')
 # 同一 code 下发多条记录时的名称表。目前只有场镇合一的别名并列，例如 659001100
@@ -345,7 +349,7 @@ def main(argv: List[str]) -> int:
     do_mark = '--no-mark' not in argv
 
     OUTPUT_DIR.mkdir(exist_ok=True)
-    DMFW_DIR.mkdir(parents=True, exist_ok=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
     load_cache()
 
     nodes: Dict[str, Node] = {}
