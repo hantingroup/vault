@@ -5,7 +5,7 @@
     乡镇街道.revoked.csv  已撤销的乡级建制
 
 名称默认用同目录的 mark.py 标成「专名:通名」，标不出来的保留原名并列到 stderr；
---no-mark 关闭标注。--fresh 清掉 .cache/dmfw.jsonl 重新抓。
+--no-mark 关闭标注。--fresh 清掉 .cache/dmfw/dmfw.jsonl 重新抓。
 """
 
 import csv
@@ -345,7 +345,7 @@ def main(argv: List[str]) -> int:
     do_mark = '--no-mark' not in argv
 
     OUTPUT_DIR.mkdir(exist_ok=True)
-    CACHE_DIR.mkdir(exist_ok=True)
+    DMFW_DIR.mkdir(parents=True, exist_ok=True)
     load_cache()
 
     nodes: Dict[str, Node] = {}
