@@ -1,0 +1,3 @@
+# 手动导出用：把响应另存为 results.csv，再跑 python update.py --from results.csv
+# 日常更新直接跑 update.py 就行，它会自己过挑战并把结果写进 ../characters.csv
+GET https://prts.wiki/index.php?title=特殊:Cargo导出&tables=chara,chara_data,chara_extra_info,char_obtain&join_on=chara._pageName=chara_data._pageName,chara._pageName=chara_extra_info._pageName,chara._pageName=char_obtain._pageName&fields=chara._pageName=干员,chara.profession=职业,chara.rarity=稀有度,chara.logo=标志,chara_extra_info.birthPlace=出身地,chara.team=团队,chara_extra_info.race=种族,chara.en=干员西文名,chara.jp=干员日文名,chara.eid=情报编号,chara_extra_info.sex=性别,chara.position=位置,chara.tag=标签,chara.subProfession=子职业,chara.nation=国家,chara.org=组织&where=chara.charIndex%3E0&order_by=chara.charIndex%20ASC&limit=5000&offset=0&format=csv
