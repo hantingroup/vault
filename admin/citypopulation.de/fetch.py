@@ -27,7 +27,6 @@ pop_<C|E>_<date>…,url
     url       absolute URL of the unit's detail page
 
 Fields the page does not carry stay empty. Rows are written sorted by id
-(numeric ids in numeric order, the top unit with no id first, other ids last)
 rather than in page order. The population columns vary with the page and come
 from its header; the page's other tables (gender, age groups, …) are map
 summaries, not unit data, and are not read.
@@ -84,8 +83,8 @@ def cache_path(url: str) -> Path:
     /en/china/townships/anhui/admin/ -> en_china_townships_anhui_admin.html
     """
     parts = [part for part in urllib.parse.urlparse(url).path.split('/') if part]
-    name = '_'.join(parts) or 'index'
-    return CACHE_DIR / f'{re.sub(r"[^\w.-]+", "_", name)}.html'
+    name = '/'.join(parts) or 'index'
+    return CACHE_DIR / f'{re.sub(r"[^\w.-]+", "/", name)}.html'
 
 
 def fetch(url: str, refresh: bool = False) -> str:
@@ -242,24 +241,16 @@ def _text(fragment: str) -> str:
 
 
 def sort_rows(rows: List[Dict[str, str]]) -> List[Dict[str, str]]:
-    """Order rows by id: numeric ids first, in numeric order, other ids after them.
+    """Order rows by id as strings.
 
     parse keeps page order, which the parent lookup needs; the output is sorted
-    so that the same units come out in the same order from any page. The page's
-    ids are a unit's digits (id="i3408" -> 3408), so numeric ids sort
-    hierarchically: 34 before 3408 before 340801. Some ids carry a letter suffix
-    (131103100m); those sort with their number. The page's own top unit has no
-    id and stays first; any other non-numeric id goes last.
+    so that the same units come out in the same order from any page. The ids are
+    hierarchical codes: a child id continues its parent's digits, so plain
+    string order puts a child directly after its parent and before the next
+    sibling. Letter suffixes (131103100m) fall in the same place, and the page's
+    top unit, which has no id, comes first.
     """
-    def key(row: Dict[str, str]):
-        value = row['id']
-        if not value:
-            return (0, 0, '')
-        match = re.match(r'(\d+)(.*)', value)
-        if match:
-            return (1, int(match.group(1)), match.group(2))
-        return (2, 0, value)
-    return sorted(rows, key=key)
+    return sorted(rows, key=lambda row: row['id'])
 
 
 def root_of(url: str) -> str:

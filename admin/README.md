@@ -2,12 +2,12 @@
 
 数据按来源分目录，目录名就是来源域名：
 
-| 目录 | 来源 | 数据文件 |
-| --- | --- | --- |
-| `dmfw.mca.gov.cn/` | [中国国家地名信息库](https://dmfw.mca.gov.cn/) | `省市区县.csv`、`乡镇街道.csv`、`乡镇街道.revoked.csv` |
-| `citypopulation.de/` | [citypopulation.de](https://www.citypopulation.de/) | `台湾.csv`、`香港.csv` |
-| `dsec.gov.mo/` | [澳门统计暨普查局](https://www.dsec.gov.mo/)《統計年鑑》 | `澳门.csv` |
-| `huiruisoft.com/` | [huiruisoft](https://www.huiruisoft.com/district/) | 不单独产出仓库表；台湾、香港的码值和同级顺序取自这里 |
+| 目录                   | 来源                                                    | 数据文件                                                     |
+| ---------------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
+| `dmfw.mca.gov.cn/`   | [中国国家地名信息库](https://dmfw.mca.gov.cn/)           | `省市区县.csv`、`乡镇街道.csv`、`乡镇街道.revoked.csv` |
+| `citypopulation.de/` | [citypopulation.de](https://www.citypopulation.de/)      | `china.csv`、`taiwan.csv`、`hongkong.csv`、`macau.csv` |
+| `dsec.gov.mo/`       | [澳门统计暨普查局](https://www.dsec.gov.mo/)《統計年鑑》 | `澳门.csv`                                                 |
+| `huiruisoft.com/`    | [huiruisoft](https://www.huiruisoft.com/district/)       | 不单独产出仓库表；台湾、香港的码值和同级顺序取自这里         |
 
     admin/
       level.py       行政级别 `Level`
@@ -53,7 +53,7 @@
 - `citypopulation.de/fetch.py`：通用抓取器，给一个 citypopulation.de 的行政区列表页，
   输出页面原始字段（`parent,level,id,status,name,alt,native,wiki,wikidata,area,density`、
   按页头生成的各期人口列 `pop_<C|E>_<date>`、`url`）。全国、国外的页面都能抓，不套仓库格式。
-  输出按 `id` 排序（纯数字按数值，带字母后缀的跟在同一数字后，无 id 的页首行最前）。
+  输出按 `id` 排序（字符串序；`id` 是层级码，子 id 紧随父 id、排在下一个同级之前；无 id 的页首行最前）。
   `-r` 从该页所属的国家/地区首页顺着 `admin/` 列表页往下抓（如中国各省的县区页、
   各市的乡镇页），按 `id` 合并成一张表，`level` 折算到国家页的口径；
   单元详情页只有人口数据，`cities/`、城市群等分区不是行政区划，都不并入；
