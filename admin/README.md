@@ -53,6 +53,10 @@
 - `citypopulation.de/fetch.py`：通用抓取器，给一个 citypopulation.de 的行政区列表页，
   输出页面原始字段（`parent,level,id,status,name,alt,native,wiki,wikidata,area,density`、
   按页头生成的各期人口列 `pop_<C|E>_<date>`、`url`）。全国、国外的页面都能抓，不套仓库格式。
+  输出按 `id` 排序（纯数字按数值，带字母后缀的跟在同一数字后，无 id 的页首行最前）。
+  `-r` 从该页所属的国家/地区首页顺着 `admin/` 列表页往下抓（如中国各省的县区页、
+  各市的乡镇页），按 `id` 合并成一张表，`level` 折算到国家页的口径；
+  单元详情页只有人口数据，`cities/`、城市群等分区不是行政区划，都不并入。
 - `citypopulation.de/build.py`：把台湾、香港页面转成仓库格式；码值和
   同级顺序取自 `../huiruisoft.com/`，`--refresh-order` 重建
   `order.json`。澳门页面的口径跟 DSEC 不同，不在这个脚本里。
