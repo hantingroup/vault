@@ -65,8 +65,10 @@ from typing import Optional
 ROOT = Path(__file__).resolve().parent      # citypopulation.de
 ADMIN_DIR = ROOT.parent                     # admin
 
-# huiruisoft and the shared modules live elsewhere under admin/
-for path in (ROOT, ADMIN_DIR / 'huiruisoft.com', ADMIN_DIR):
+# ROOT must stay first: both it and huiruisoft.com contain a fetch.py, and
+# build.py wants its own. huiruisoft and the shared modules live elsewhere
+# under admin/, so they go after it.
+for path in reversed((ROOT, ADMIN_DIR / 'huiruisoft.com', ADMIN_DIR)):
     sys.path.insert(0, str(path))
 
 from fetch import fetch, parse
@@ -74,7 +76,6 @@ from huiruisoft import fetch as fetch_huiruisoft, parse as parse_huiruisoft
 from level import Level
 from mark import proper_of, split_name, suffix_of
 
-DATA = json.loads((ROOT / 'taiwan_hongkong.json').read_text(encoding='utf-8'))
 OUTPUT_DIR = ADMIN_DIR / '.output' / 'citypopulation.de'
 OUT_TAIWAN = OUTPUT_DIR / '台湾.csv'
 OUT_HONGKONG = OUTPUT_DIR / '香港.csv'
@@ -83,7 +84,10 @@ OUT_HONGKONG = OUTPUT_DIR / '香港.csv'
 # Taiwan's name and type follow GB/T 2260 (710000 臺灣省); Hong Kong uses the
 # page's "Special Administrative Region" -> 特別行政區. parent is the first digit
 # of the region, matching dmfw: 7 Taiwan, 8 Hong Kong/Macau
-TOPS = {page: [Level(str(row[0])), *row[1:]] for page, row in DATA['tops'].items()}
+TOPS = {
+    'taiwan': [Level.PROVINCE, '7', '71', '省', '臺灣:省'],
+    'hongkong': [Level.PROVINCE, '8', '81', '特別行政區', '香港:特別行政區'],
+}
 TOPS_CODE = {page: row[2] for page, row in TOPS.items()}
 
 # Hong Kong's 18 districts have no official county-level codes (the GB/T 2260
@@ -94,7 +98,7 @@ TOPS_CODE = {page: row[2] for page, row in TOPS.items()}
 # in 行政管理区.csv. --hk-regions=TYPE changes the type; an empty --hk-regions=
 # leaves type empty and names unmarked; --no-hk-regions omits the three rows and
 # attaches the 18 districts to 81 as 810101-810118.
-HK_REGIONS = [tuple(row) for row in DATA['hk_regions']]
+HK_REGIONS = [('8101', '香港島'), ('8102', '九龍'), ('8103', '新界')]
 
 
 def hk_region_rows(type_):
@@ -108,7 +112,13 @@ def hk_region_rows(type_):
 # proper name -> region. Codes within a region follow huiruisoft order (see the
 # '81/3' group in the ordering table), numbered from 01. Page names are
 # traditional, so the keys are too.
-HK_DISTRICTS = DATA['hk_districts']
+HK_DISTRICTS = {
+    '中西': '8101', '灣仔': '8101', '東': '8101', '南': '8101',
+    '九龍城': '8102', '油尖旺': '8102', '觀塘': '8102', '黃大仙': '8102',
+    '深水埗': '8102',
+    '北': '8103', '大埔': '8103', '沙田': '8103', '西貢': '8103', '元朗': '8103',
+    '屯門': '8103', '荃灣': '8103', '葵青': '8103', '離島': '8103',
+}
 
 PAGES = {
     'taiwan': 'https://www.citypopulation.de/en/taiwan/admin/',

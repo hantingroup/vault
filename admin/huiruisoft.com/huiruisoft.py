@@ -14,13 +14,14 @@ admin/.cache/huiruisoft.com/; a page string like 71/710100 becomes a
 subdirectory.
 """
 
+import posixpath
 import re
 import sys
 import unicodedata
 import urllib.request
 from html import unescape
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parent          # huiruisoft.com
 ADMIN_DIR = ROOT.parent                         # admin
@@ -32,6 +33,10 @@ TABLE_RE = re.compile(r'<table[^>]*>(.*?)</table>', re.S)
 ROW_RE = re.compile(r'<tr[^>]*>(.*?)</tr>', re.S)
 CELL_RE = re.compile(r'<t[dh][^>]*>(.*?)</t[dh]>', re.S)
 TAG_RE = re.compile(r'<[^>]+>')
+HREF_RE = re.compile(r'href="([^"]+)"')
+# Child pages are relative numeric paths (110000.html, 11/110101.html); the
+# summary page also links a download (/data/...) and the layout links out
+CHILD_RE = re.compile(r'[0-9/]+\.html')
 
 # The two page kinds use different headers: 区划代码/中文名称 on district pages,
 # 行政区划代码/行政区划名称 on the national summary
@@ -65,14 +70,38 @@ def parse(html: str) -> List[Dict[str, str]]:
     A page may contain several tables (summary, map); the district table is the
     one whose header row starts with a code column and a name column.
     """
+    header, rows = _code_table(html)
+    return [dict(zip(header, cells)) for cells, _ in rows
+            if cells and cells[0].isdigit()]
+
+
+def parse_with_links(html: str) -> List[Tuple[Dict[str, str], Optional[str]]]:
+    """parse(), plus each row's child-page href (None when the row has none).
+
+    The href is relative to the page it was found on; child_page() resolves it.
+    """
+    header, rows = _code_table(html)
+    return [(dict(zip(header, cells)),
+             next((h for h in hrefs if CHILD_RE.fullmatch(h)), None))
+            for cells, hrefs in rows if cells and cells[0].isdigit()]
+
+
+def child_page(page: str, href: str) -> str:
+    """Resolve a row's href against its page: '110000' + '11/110101.html' -> '11/110101'."""
+    return posixpath.normpath(posixpath.join(posixpath.dirname(page), href[:-len('.html')]))
+
+
+def _code_table(html: str):
+    """(header cells, [(data cells, hrefs)]) for the page's code+name table."""
     for table in TABLE_RE.findall(html):
-        rows = [[_text(cell) for cell in CELL_RE.findall(tr)]
-                for tr in ROW_RE.findall(table)]
-        for i, cells in enumerate(rows):
+        rows = []
+        for tr in ROW_RE.findall(table):
+            rows.append(([_text(cell) for cell in CELL_RE.findall(tr)],
+                         HREF_RE.findall(tr)))
+        for i, (cells, _) in enumerate(rows):
             if len(cells) >= 2 and cells[0] in CODE_FIELDS and cells[1] in NAME_FIELDS:
-                return [dict(zip(cells, row)) for row in rows[i + 1:]
-                        if row and row[0].isdigit()]
-    return []
+                return cells, rows[i + 1:]
+    return [], []
 
 
 def _text(fragment: str) -> str:
