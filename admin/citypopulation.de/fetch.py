@@ -320,12 +320,14 @@ def section_links(page: str, base_url: str, root_url: str) -> List[str]:
     return links
 
 
-def page_offset(rows: List[Dict[str, str]], known: Dict[str, int]) -> int:
+def page_offset(rows: List[Dict[str, str]], known: Dict[str, int]) -> Optional[int]:
     """How much a page's tbody levels are shifted from the country page's levels.
 
     A section page restarts at admin1 for the units it shows, so the same unit's
     level differs between pages. The offset is the most common difference from
     levels already seen; a page whose units are all new keeps the page levels.
+    A negative offset means the page is a coarser view of known units (Taiwan's
+    statistical regions page), not a deeper level; None is returned for those.
     """
     offsets: Dict[int, int] = {}
     for row in rows:
@@ -334,7 +336,10 @@ def page_offset(rows: List[Dict[str, str]], known: Dict[str, int]) -> int:
         if row['id'] in known:
             offset = known[row['id']] - int(row['level'])
             offsets[offset] = offsets.get(offset, 0) + 1
-    return max(offsets, key=offsets.get) if offsets else 0
+    if not offsets:
+        return 0
+    offset = max(offsets, key=offsets.get)
+    return None if offset < 0 else offset
 
 
 def merge_rows(pages: List[List[Dict[str, str]]]) -> List[Dict[str, str]]:
@@ -370,7 +375,9 @@ def walk(url: str, refresh: bool = False) -> List[Dict[str, str]]:
     per-city townships pages, for instance), sometimes through an index page
     such as townships/. Only pages whose last segment is ``admin`` are read;
     the rest are walked through for their links. Rows are merged by id and
-    their levels shifted onto the country page's scale. Pages are visited
+    their levels shifted onto the country page's scale; a page that is only a
+    coarser view of units already seen (Taiwan's statistical regions page) is
+    skipped, so it cannot reparent or duplicate them. Pages are visited
     shallowest first, so a section page's parent rows are known before it needs
     the offset.
     """
@@ -392,11 +399,15 @@ def walk(url: str, refresh: bool = False) -> List[Dict[str, str]]:
             rows = []
         else:
             offset = page_offset(rows, known)
-            for row in rows:
-                if row['id'] and row['level'].isdigit():
-                    row['level'] = str(int(row['level']) + offset)
-                    known.setdefault(row['id'], int(row['level']))
-            print(f'{current}: {len(rows)} rows', file=sys.stderr)
+            if offset is None:
+                print(f'{current}: coarser view, skipped', file=sys.stderr)
+                rows = []
+            else:
+                for row in rows:
+                    if row['id'] and row['level'].isdigit():
+                        row['level'] = str(int(row['level']) + offset)
+                        known.setdefault(row['id'], int(row['level']))
+                print(f'{current}: {len(rows)} rows', file=sys.stderr)
         pages.append(rows)
         links_from = before_subentities(page) if current == root else page
         for link in section_links(links_from, current, root):
