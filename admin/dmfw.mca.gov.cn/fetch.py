@@ -3,9 +3,8 @@
 Fetches the hierarchy, splits it by level and marks names, writing to
 admin/.output/dmfw.mca.gov.cn:
 
-    省市区县.csv          levels 1-3, with a level column
-    乡镇街道.csv          level 4, without a level column
-    乡镇街道.revoked.csv  revoked township-level divisions
+    xzqh.csv          levels 1-4, with a level column
+    xzqh.revoked.csv  revoked divisions, with a level column
 
 Names are marked as 「专名:通名」 by the shared admin/mark.py; names that cannot be
 marked are kept as-is and listed on stderr. --no-mark disables marking. --fresh
@@ -228,9 +227,7 @@ def expand(codes: List[str], max_level: int) -> Tuple[Dict[str, Node], List[str]
     return result, [code for code, _ in errors]
 
 
-# The county table has a level column; the township and revoked tables do not
-COUNTY_FIELDS = ['level', 'parent', 'code', 'type', 'name']
-TOWNSHIP_FIELDS = ['parent', 'code', 'type', 'name']
+FIELDS = ['level', 'parent', 'code', 'type', 'name']
 
 
 def write_csv(path: Path, fields: List[str], rows: List[tuple]) -> None:
@@ -243,12 +240,12 @@ def write_csv(path: Path, fields: List[str], rows: List[tuple]) -> None:
 
 
 def export_csv(nodes: Dict[str, Node], do_mark: bool = True) -> None:
-    """Write the three CSVs from the collected nodes.
+    """Write xzqh.csv and xzqh.revoked.csv from the collected nodes.
 
-    Levels 1-3 go to the county table, level 4 to the township table. Revoked
-    divisions are written separately with their parenthetical marker removed.
-    With do_mark (the default) names are marked by mark.py; names that cannot be
-    marked are kept as-is and listed on stderr.
+    Levels 1-4 all go to xzqh.csv with a level column. Revoked divisions are
+    written separately with their parenthetical marker removed. With do_mark
+    (the default) names are marked by mark.py; names that cannot be marked are
+    kept as-is and listed on stderr.
     """
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -263,8 +260,7 @@ def export_csv(nodes: Dict[str, Node], do_mark: bool = True) -> None:
             return name
         return marked
 
-    county_rows = []
-    township_rows = []
+    rows = []
     revoked_rows = []
     for node in sorted(nodes.values(), key=lambda n: n.code):
         try:
@@ -275,21 +271,16 @@ def export_csv(nodes: Dict[str, Node], do_mark: bool = True) -> None:
             continue
         if REVOKED_PATTERN.search(node.name):
             name = name_of(node, REVOKED_PATTERN.sub('', node.name))
-            revoked_rows.append((node.parent, node.code, node.type, name))
-        elif level is Level.TOWNSHIP:
-            township_rows.append([node.parent, node.code, node.type,
-                                  name_of(node, node.name)])
+            revoked_rows.append([level.value, node.parent, node.code, node.type, name])
         else:
-            county_rows.append([level.value, node.parent, node.code, node.type,
-                                name_of(node, node.name)])
+            rows.append([level.value, node.parent, node.code, node.type,
+                         name_of(node, node.name)])
 
     warnings.dump()
-    write_csv(OUTPUT_DIR / '省市区县.csv', COUNTY_FIELDS, county_rows)
-    print(f"Exported 省市区县.csv with {len(county_rows)} records", file=sys.stderr)
-    write_csv(OUTPUT_DIR / '乡镇街道.csv', TOWNSHIP_FIELDS, township_rows)
-    print(f"Exported 乡镇街道.csv with {len(township_rows)} records", file=sys.stderr)
-    write_csv(OUTPUT_DIR / '乡镇街道.revoked.csv', TOWNSHIP_FIELDS, revoked_rows)
-    print(f"Exported 乡镇街道.revoked.csv with {len(revoked_rows)} records", file=sys.stderr)
+    write_csv(OUTPUT_DIR / 'xzqh.csv', FIELDS, rows)
+    print(f"Exported xzqh.csv with {len(rows)} records", file=sys.stderr)
+    write_csv(OUTPUT_DIR / 'xzqh.revoked.csv', FIELDS, revoked_rows)
+    print(f"Exported xzqh.revoked.csv with {len(revoked_rows)} records", file=sys.stderr)
 
 
 def report_aliases() -> None:
@@ -301,7 +292,7 @@ def report_aliases() -> None:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         description='Fetch the mainland administrative division tables from dmfw.mca.gov.cn.',
-        epilog='Writes 省市区县.csv, 乡镇街道.csv and 乡镇街道.revoked.csv '
+        epilog='Writes xzqh.csv and xzqh.revoked.csv '
                'to admin/.output/dmfw.mca.gov.cn/.')
     parser.add_argument('--fresh', action='store_true',
                         help='delete the response cache and refetch every node')

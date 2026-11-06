@@ -23,7 +23,7 @@ proper_of below handle them for citypopulation.de and dsec.gov.mo.
 All source directories under admin/ share this module.
 
 Usage (from the repository root):
-    python admin/mark.py admin/.output/dmfw.mca.gov.cn/省市区县.csv > marked.csv
+    python admin/mark.py admin/.output/dmfw.mca.gov.cn/xzqh.csv > marked.csv
 
 Files passed together must have the same columns: the first file's header is
 written once for all rows.
@@ -237,9 +237,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         epilog='Names already containing | or : are re-marked from the plain name; '
                'results that differ are reported on stderr.')
     parser.add_argument('paths', nargs='*', metavar='CSV',
-                        default=[str(OUTPUT_DIR / '省市区县.csv')],
+                        default=[str(OUTPUT_DIR / 'xzqh.csv')],
                         help='CSV file(s) with name/type/code columns '
-                             '(default: admin/.output/dmfw.mca.gov.cn/省市区县.csv)')
+                             '(default: admin/.output/dmfw.mca.gov.cn/xzqh.csv)')
     args = parser.parse_args(argv)
     paths = args.paths
     out = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', newline='\n')

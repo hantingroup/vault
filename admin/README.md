@@ -4,7 +4,7 @@
 
 | 目录                   | 来源                                                    | 数据文件                                                     |
 | ---------------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
-| `dmfw.mca.gov.cn/`   | [中国国家地名信息库](https://dmfw.mca.gov.cn/)           | `省市区县.csv`、`乡镇街道.csv`、`乡镇街道.revoked.csv` |
+| `dmfw.mca.gov.cn/`   | [中国国家地名信息库](https://dmfw.mca.gov.cn/)           | `xzqh.csv`、`xzqh.revoked.csv` |
 | `citypopulation.de/` | [citypopulation.de](https://www.citypopulation.de/)      | `china.csv`、`taiwan.csv`、`hongkong.csv`、`macau.csv` |
 | `dsec.gov.mo/`       | [澳门统计暨普查局](https://www.dsec.gov.mo/)《統計年鑑》 | `澳门.csv`                                                 |
 | `huiruisoft.com/`    | [huiruisoft](https://www.huiruisoft.com/district/)       | 不单独产出仓库表；台湾、香港的码值和同级顺序取自这里         |
@@ -24,7 +24,7 @@
 - `level.py`：行政级别 `Level`（0 国、1 省、2 地、3 县、4 乡），各来源脚本共用。
 - `mark.py`：把内地名称标成「专名:通名」，台港澳按 type 定通名；各来源脚本共用。
   内地名称用的数据 `dmfw.mca.gov.cn/names.json` 仍留在来源目录里。
-- `dmfw.mca.gov.cn/`：内地数据脚本。`fetch.py` 抓取并生成三张表，
+- `dmfw.mca.gov.cn/`：内地数据脚本。`fetch.py` 抓取并生成两张表，
   `merge.py`/`split.py` 合并和拆分表。
 - 各来源目录里的 `*.json`：如台湾和香港的码值顺序、澳门分区归组、
   民族名。代码里只放规则和结构常量。

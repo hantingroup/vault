@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """Inverse of merge.py: split a merged table with a level column back into files.
 
-    python split.py .merged.csv 省市区县.csv 乡镇街道.csv@4
+    python split.py .merged.csv xzqh.csv ../citypopulation.de/台湾.csv@1,2,3:7
 
-@ mirrors its meaning in merge.py. There, 乡镇街道.csv@4 means the file has no
-level column and gets one filled with 4; here the same marker means the column
-is synthetic and is dropped from the output. So
+@ mirrors its meaning in merge.py. There, FILE@4 means the file has no level
+column and gets one filled with 4; here the same marker means the column is
+synthetic and is dropped from the output. So
 
-    python merge.py 省市区县.csv 乡镇街道.csv@4 > .merged.csv
-    python split.py .merged.csv 省市区县.csv 乡镇街道.csv@4
+    python merge.py a.csv@1 ../b.csv@4 > .merged.csv
+    python split.py .merged.csv a.csv@1 b.csv@4
 
 round-trips. A target without @ receives all remaining rows and keeps the level
 column.
@@ -17,7 +17,11 @@ Rows are selected by level. To split one level across several files (Taiwan,
 Hong Kong and Macau share levels 1-3 with the mainland), append a colon and code
 prefixes to the level spec:
 
-    python split.py .merged.csv 省市区县.csv ../citypopulation.de/台湾.csv@1,2,3:7 ../citypopulation.de/香港.csv@1,2,3:81 ../dsec.gov.mo/澳门.csv@1,2,3:82 乡镇街道.csv@4
+    python split.py .merged.csv xzqh.csv ../citypopulation.de/台湾.csv@1,2,3:7 ../citypopulation.de/香港.csv@1,2,3:81 ../dsec.gov.mo/澳门.csv@1,2,3:82
+
+Prefix targets also pick up the mainland table's placeholder rows for those
+regions (71 台湾省, 81 香港特别行政区, 82 澳门特别行政区), so give them to the
+region tables or leave them in xzqh.csv, not both.
 
 Targets with code prefixes keep the level column: rows are selected by code
 rather than level, and the file still belongs to the "has level" kind

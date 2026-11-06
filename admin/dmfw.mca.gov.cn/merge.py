@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Merge level,parent,code,type,name CSVs into one table on stdout.
 
-    python merge.py 省市区县.csv 乡镇街道.csv@4 > .merged.csv
+    python merge.py xzqh.csv ../citypopulation.de/台湾.csv > .merged.csv
 
 A file given as FILE@LEVEL gets its level column filled with LEVEL, for files
 that do not carry one. split.py is the inverse.
