@@ -6,7 +6,7 @@ curl only receive the challenge page. Playwright runs a real browser through it
 (usually 1-3 seconds) and captures the download.
 
 With a locally downloaded raw CSV (for example one exported through
-fetch-characters.http), use --from to skip fetching and only unescape:
+fetch.http), use --from to skip fetching and only unescape:
 
     python update.py                    # fetch + unescape
     python update.py --from results.csv # unescape only
