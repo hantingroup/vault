@@ -2,12 +2,12 @@
 
 数据按来源分目录，目录名就是来源域名：
 
-| 目录                   | 来源                                                    | 数据文件                                                     |
-| ---------------------- | ------------------------------------------------------- | ------------------------------------------------------------ |
-| `dmfw.mca.gov.cn/`   | [中国国家地名信息库](https://dmfw.mca.gov.cn/)           | `xzqh.csv`、`xzqh.revoked.csv` |
-| `citypopulation.de/` | [citypopulation.de](https://www.citypopulation.de/)      | `china.csv`、`taiwan.csv`、`hongkong.csv`、`macau.csv` |
-| `dsec.gov.mo/`       | [澳门统计暨普查局](https://www.dsec.gov.mo/)《統計年鑑》 | `澳门.csv`                                                 |
-| `huiruisoft.com/`    | [huiruisoft](https://www.huiruisoft.com/district/)       | 不单独产出仓库表；台湾、香港的码值和同级顺序取自这里         |
+| 目录 | 来源 | 数据文件 |
+| - | - | - |
+| `dmfw.mca.gov.cn/` | [中国国家地名信息库](https://dmfw.mca.gov.cn/) | `xzqh.csv`、`xzqh.revoked.csv` |
+| `citypopulation.de/` | [City Population](https://www.citypopulation.de/) | `china.csv`、`taiwan.csv`、`hongkong.csv`、`macau.csv` |
+| `dsec.gov.mo/` | [澳门统计暨普查局](https://www.dsec.gov.mo/)《統計年鑑》 | `澳门.csv` |
+| `huiruisoft.com/` | [HuiruiSoft](https://www.huiruisoft.com/district/) | 不单独产出仓库表；台湾、香港的码值和同级顺序取自这里 |
 
     admin/
       level.py       行政级别 `Level`
